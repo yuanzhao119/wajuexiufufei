@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路挖掘修复费计算系统 - 唐山市路北区市政设施服务所</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%23C7000B'/%3E%3Ctext x='50' y='68' font-size='56' font-family='SimHei' fill='%23fff' text-anchor='middle' font-weight='bold'%3E挖%3C/text%3E%3C/svg%3E">
+    <style>
+        /* ============ 设计令牌：政府公文风格 ============ */
+        :root{
+            --gov-red:#C7000B;        /* 政府红：主强调色 */
+            --gov-red-dark:#A00009;
+            --gov-blue:#1565C0;
+            --gov-green:#2E7D32;
+            --gov-orange:#E65100;
+            --ink:#1A1A1A;
+            --ink-light:#5A5A5A;
+            --line:#333;
+            --paper:#FFFFFF;
+            --bg:#EDF0F3;
+            --ui-font:"Microsoft YaHei","微软雅黑",Arial,sans-serif;
+            --doc-font:"FangSong","仿宋","仿宋_GB2312","SimSun","宋体",serif;
+            --title-font:"SimHei","黑体","Microsoft YaHei",sans-serif;
+        }
+
+        *{margin:0;padding:0;box-sizing:border-box;}
+
+        body{
+            background:var(--bg);
+            font-family:var(--ui-font);
+            font-size:14px;
+            color:var(--ink);
+        }
+
+        /* ---------- 顶部政府红条（不打印） ---------- */
+        .topbar{
+            background:linear-gradient(90deg,var(--gov-red) 0%,var(--gov-red-dark) 100%);
+            color:#fff;
+            padding:14px 26px;
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:space-between;
+            align-items:center;
+            gap:8px 16px;
+            box-shadow:0 2px 6px rgba(0,0,0,.18);
+        }
+        .topbar h1{
+            font-size:20px;
+            font-weight:700;
+            letter-spacing:2px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        .topbar h1 .badge{
+            display:inline-block;
+            border:2px solid #fff;
+            border-radius:6px;
+            padding:2px 8px;
+            font-size:12px;
+            letter-spacing:0;
+            font-weight:600;
+        }
+        .topbar .unit{font-size:13px;opacity:.95;letter-spacing:1px;}
+
+        /* ---------- 操作面板（不打印） ---------- */
+        .panel{
+            max-width:920px;
+            margin:18px auto 6px;
+            background:var(--paper);
+            border-radius:8px;
+            box-shadow:0 2px 12px rgba(0,0,0,.08);
+            padding:18px 24px;
+        }
+        .control-group{
+            display:flex;
+            flex-wrap:wrap;
+            gap:18px;
+            align-items:flex-end;
+        }
+        .control-item{display:flex;flex-direction:column;}
+        .control-item label{
+            font-size:13px;
+            color:var(--ink-light);
+            margin-bottom:6px;
+            font-weight:600;
+        }
+        .control-item input,.control-item select{
+            padding:8px 10px;
+            border:1px solid #C6CBD1;
+            border-radius:6px;
+            min-width:180px;
+            font-size:14px;
+            font-family:var(--ui-font);
+            background:#fff;
+            transition:border-color .15s, box-shadow .15s;
+        }
+        .control-item input:focus,.control-item select:focus{
+            outline:none;
+            border-color:var(--gov-red);
+            box-shadow:0 0 0 3px rgba(199,0,11,.12);
+        }
+
+        /* 倍数控制（仅“新建道路挖掘”显示） */
+        .multiplier-control{
+            display:none;
+            background:#FAF3F3;
+            border:1px solid #E4B4B4;
+            border-left:4px solid var(--gov-red);
+            border-radius:6px;
+            padding:12px 16px;
+            margin-top:16px;
+        }
+        .multiplier-control.visible{display:block;}
+        .multiplier-row{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:10px 16px;
+        }
+        .multiplier-label{font-weight:700;font-size:14px;color:var(--ink);}
+        .multiplier-row input{
+            width:110px;
+            padding:7px 10px;
+            border:1px solid #C6CBD1;
+            border-radius:6px;
+            text-align:center;
+            font-size:14px;
+        }
+        .multiplier-row .total{font-weight:800;font-size:16px;color:var(--gov-red);}
+
+        .buttons{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            margin-top:16px;
+        }
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            gap:7px;
+            padding:10px 18px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-weight:700;
+            font-size:14px;
+            color:#fff;
+            transition:background-color .2s, transform .05s;
+        }
+        .btn:active{transform:translateY(1px);}
+        .btn .ico{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;flex:none;vertical-align:middle;}
+        .btn-add{background:var(--gov-red);}
+        .btn-add:hover{background:var(--gov-red-dark);}
+        .btn-delete{background:var(--gov-orange);}
+        .btn-delete:hover{background:#D84315;}
+        .btn-print{background:var(--gov-green);}
+        .btn-print:hover{background:#1B5E20;}
+        .btn-excel{background:var(--gov-blue);}
+        .btn-excel:hover{background:#0D47A1;}
+        .btn-pdf{background:#B71C1C;}
+        .btn-pdf:hover{background:#8E0000;}
+        .btn-apply{background:var(--gov-green);padding:8px 16px;}
+        .btn-apply:hover{background:#1B5E20;}
+
+        /* ---------- A4 纸面（可打印） ---------- */
+        .stage{
+            margin:20px auto 30px;
+            max-width:210mm;
+            padding:0 6px;
+            overflow-x:auto;
+        }
+        .sheet{
+            width:210mm;
+            min-height:297mm;
+            background:var(--paper);
+            margin:0 auto;
+            padding:14mm 15mm;
+            box-shadow:0 8px 30px rgba(0,0,0,.18);
+            position:relative;
+        }
+
+        /* 红头线 */
+        .sheet .head-rule{
+            height:2.5px;
+            background:var(--gov-red);
+            margin-bottom:6mm;
+        }
+
+        .sheet-title{
+            font-family:var(--title-font);
+            font-size:16pt;
+            font-weight:700;
+            text-align:center;
+            color:var(--gov-red);
+            letter-spacing:2px;
+            margin-bottom:5mm;
+            word-break:break-all;
+        }
+
+        /* 文档表格 */
+        .doc-table{
+            width:100%;
+            border-collapse:collapse;
+            table-layout:fixed;
+            font-family:var(--doc-font);
+            font-size:10.5pt;
+        }
+        .doc-table th,.doc-table td{
+            border:1px solid var(--line);
+            padding:1.4mm 1.5mm;
+            text-align:center;
+            height:8mm;
+            vertical-align:middle;
+        }
+        .doc-table thead th{
+            font-family:var(--title-font);
+            font-weight:700;
+            background:#F6F6F6;
+        }
+        .doc-table td input{
+            width:100%;
+            border:none;
+            background:transparent;
+            text-align:center;
+            font-size:10.5pt;
+            font-family:var(--doc-font);
+            padding:1mm;
+            color:var(--ink);
+        }
+        .doc-table td input:focus{
+            outline:2px solid var(--gov-red);
+            background:#FFF8F8;
+        }
+        .doc-table .name-cell{
+            text-align:left;
+            padding:1mm 1.5mm;
+        }
+        .doc-table .name-cell .name-input{text-align:left;}
+        .row-del{
+            display:inline-block;
+            margin-top:1.5mm;
+            background:#E53935;
+            color:#fff;
+            border:none;
+            border-radius:3px;
+            padding:1mm 3mm;
+            font-size:8.5pt;
+            cursor:pointer;
+            font-family:var(--ui-font);
+        }
+        .row-del:hover{background:#C62828;}
+
+        /* 政策说明 */
+        .policy-note{
+            font-family:var(--doc-font);
+            font-size:9.5pt;
+            line-height:1.6;
+            margin:4mm 0;
+            padding:2.5mm 3mm;
+            background:#F6F6F6;
+            border-left:3.5px solid #888;
+            color:var(--ink);
+        }
+
+        /* 合计 */
+        .total-wrap{
+            width:60mm;
+            margin:2mm 0 0 auto;
+            text-align:right;
+            font-family:var(--doc-font);
+            font-size:11pt;
+        }
+        .total-row{display:flex;align-items:center;justify-content:flex-end;}
+        .total-row .lbl{padding-right:2mm;white-space:nowrap;}
+        .total-box{
+            width:34mm;
+            border:1px solid var(--line);
+            text-align:center;
+            padding:1.4mm;
+            font-family:var(--title-font);
+            font-weight:700;
+            background:#FBFBFB;
+        }
+        .total-row .unit{padding-left:1.5mm;}
+
+        /* 落款 */
+        .footer{
+            margin-top:10mm;
+            text-align:right;
+            font-family:var(--doc-font);
+            font-size:11pt;
+        }
+        .footer .sign{font-family:var(--title-font);}
+        .footer .date{margin-top:3mm;}
+
+        /* ============ 打印 ============ */
+        /* ============ 窄屏适配 ============ */
+        @media (max-width:768px){
+            .topbar{padding:12px 14px;flex-direction:column;align-items:flex-start;}
+            .panel{margin:12px 10px;padding:14px 14px;}
+            .control-item{flex:1 1 140px;}
+            .control-item input,.control-item select{min-width:0;width:100%;}
+            .panel input,.panel select,.multiplier-control input{font-size:16px;}
+            .doc-table td input{font-size:16px;}
+            .buttons .btn{flex:1 1 auto;}
+            .stage{margin:14px 0;padding:0;}
+        }
+
+        /* ============ 打印 ============ */
+        @media print{
+            @page{size:A4;margin:0;}
+            body{background:#fff;}
+            .topbar,.panel,.stage::-webkit-scrollbar{display:none!important;}
+            .no-print{display:none!important;}
+            .stage{max-width:none;margin:0;padding:0;overflow:visible;}
+            .sheet{
+                width:210mm;
+                min-height:297mm;
+                height:297mm;
+                box-shadow:none;
+                margin:0;
+                padding:14mm 15mm;
+                overflow:hidden;
+            }
+            .doc-table td input{font-size:10.5pt;}
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 顶部政府红条（不打印） ===== -->
+    <header class="topbar no-print">
+        <h1><span class="badge">市政</span>道路挖掘修复费计算系统</h1>
+        <span class="unit">唐山市路北区市政设施服务所</span>
+    </header>
+
+    <!-- ===== 操作面板（不打印） ===== -->
+    <section class="panel no-print">
+        <div class="control-group">
+            <div class="control-item">
+                <label>工程名称：</label>
+                <input type="text" id="projectName" value="道路挖掘修复工程">
+            </div>
+            <div class="control-item">
+                <label>计算类型：</label>
+                <select id="calcType">
+                    <option value="normal">正常挖掘修复</option>
+                    <option value="winter">冬季施工</option>
+                    <option value="new">新建道路挖掘</option>
+                </select>
+            </div>
+            <div class="control-item">
+                <label>计算日期：</label>
+                <input type="date" id="calcDate">
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-add" onclick="addRow()"><span aria-hidden="true">＋</span>添加项目</button>
+            <button class="btn btn-delete" onclick="deleteLastRow()"><span aria-hidden="true">－</span>删除最后项目</button>
+            <button class="btn btn-print" onclick="window.print()"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>打印</button>
+            <button class="btn btn-excel" onclick="downloadExcel()"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>下载Excel</button>
+            <button class="btn btn-pdf" onclick="downloadPDF()"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>下载PDF</button>
+        </div>
+
+        <div id="multiplierControl" class="multiplier-control">
+            <div class="multiplier-row">
+                <span class="multiplier-label">新建道路年限倍数：</span>
+                <input type="number" id="newRoadMultiplier" value="2" min="1" step="0.1">
+                <span class="multiplier-label">总倍数：</span>
+                <span class="total" id="totalMultiplier">2</span>
+                <button class="btn btn-apply" onclick="applyMultipliers()">应用倍数</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== A4 纸面（可打印） ===== -->
+    <div class="stage">
+        <div class="sheet" id="printArea">
+            <div class="head-rule"></div>
+            <div class="sheet-title" id="titleElement">道路挖掘修复费</div>
+
+            <table class="doc-table">
+                <colgroup>
+                    <col style="width:55mm">
+                    <col style="width:15mm">
+                    <col style="width:13mm">
+                    <col style="width:7mm">
+                    <col style="width:17mm">
+                    <col style="width:16mm">
+                    <col style="width:7mm">
+                    <col style="width:22mm">
+                    <col style="width:9mm">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>项目名称</th>
+                        <th>数量</th>
+                        <th>单位</th>
+                        <th></th>
+                        <th>单价</th>
+                        <th>价格单位</th>
+                        <th></th>
+                        <th>金额（元）</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- 表格行由 JS 动态生成 -->
+                </tbody>
+            </table>
+
+            <div id="policyNote" class="policy-note">
+                以上收费标准根据河北省冀建城〔2015〕43号文件执行。
+            </div>
+
+            <div class="total-wrap">
+                <div class="total-row">
+                    <span class="lbl">合　计：</span>
+                    <span class="total-box" id="totalAmount">13539.00</span>
+                    <span class="unit">元</span>
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="sign">唐山市路北区市政设施服务所</div>
+                <div class="date"><span id="displayDate">2026年1月1日</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始数据
+        const initialData = [
+            { name: "沥青路面（主干道）", quantity: 4, unit: "㎡", price: 548, priceUnit: "元/㎡", total: 2192 },
+            { name: "彩色环保砖便道", quantity: 4, unit: "㎡", price: 243, priceUnit: "元/㎡", total: 972 },
+            { name: "混凝土路缘石", quantity: 2, unit: "m", price: 60, priceUnit: "元/m", total: 120 },
+            { name: "花岗岩路缘石", quantity: 4, unit: "m", price: 188, priceUnit: "元/m", total: 752 },
+            { name: "回填砂  深0-1米", quantity: 5, unit: "㎡", price: 225, priceUnit: "元/㎡", total: 1125 },
+            { name: "回填砂  深1-2米", quantity: 6, unit: "㎡", price: 498, priceUnit: "元/㎡", total: 2988 },
+            { name: "回填砂  深2-3米", quantity: 7, unit: "㎡", price: 770, priceUnit: "元/㎡", total: 5390 }
+        ];
+
+        const policyNotes = {
+            normal: "以上收费标准根据河北省冀建城〔2015〕43号文件执行。",
+            winter: "根据河北省冀建城〔2015〕43号文件精神，严格控制城市道路挖掘行为，冬季掘路（11月15日至翌年的3月15日），在规定年限加收基础上加收1倍掘路修复费。",
+            new: "根据河北省冀建城〔2015〕43号文件精神，严格控制城市道路挖掘行为，新建、扩建、改建的城市道路交付使用后五年内不得挖掘，大修的城市道路竣工后三年内不得挖掘。因特殊情况确需挖掘的，除履行行政审批手续外，要加倍收取挖掘修复费。具体为：一年内收取3倍、两年内收取2.5倍、三年内收取2倍、四年内收取1.5倍、五年内收取1.2倍的城市道路挖掘修复费用。掘路面积不足一平方米的按照一平方米收取。"
+        };
+
+        let currentData = JSON.parse(JSON.stringify(initialData));
+        let currentType = "normal";
+        let winterMultiplier = 2;   // 冬季施工固定为2倍
+        let newRoadMultiplier = 2;  // 新建道路倍数，可自定义
+
+        // 新建道路年限对应的倍数
+        const newRoadMultipliers = {
+            "1": 3,    // 一年内3倍
+            "2": 2.5,  // 两年内2.5倍
+            "3": 2,    // 三年内2倍
+            "4": 1.5,  // 四年内1.5倍
+            "5": 1.2   // 五年内1.2倍
+        };
+
+        // 初始化表格
+        function initTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            currentData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="name-cell">
+                        <input type="text" value="${item.name}" data-index="${index}" data-field="name" class="editable name-input">
+                        <button class="row-del" onclick="deleteRow(${index})">删除此项</button>
+                    </td>
+                    <td><input type="number" value="${item.quantity}" data-index="${index}" data-field="quantity" class="editable" step="0.01" min="0"></td>
+                    <td><input type="text" value="${item.unit}" data-index="${index}" data-field="unit" class="editable"></td>
+                    <td>×</td>
+                    <td><input type="number" value="${item.price}" data-index="${index}" data-field="price" class="editable" step="0.01" min="0"></td>
+                    <td><input type="text" value="${item.priceUnit}" data-index="${index}" data-field="priceUnit" class="editable"></td>
+                    <td>=</td>
+                    <td><input type="text" value="${item.total.toFixed(2)}" data-index="${index}" data-field="total" readonly></td>
+                    <td>元</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // 添加空行
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="9" style="border:none;height:2mm;"></td>';
+            tableBody.appendChild(emptyRow);
+
+            addEventListeners();
+            updateTotals();
+        }
+
+        // 事件监听
+        function addEventListeners() {
+            document.querySelectorAll('.editable').forEach(input => {
+                input.addEventListener('input', function() {
+                    const index = parseInt(this.dataset.index);
+                    const field = this.dataset.field;
+                    const value = this.value;
+
+                    if (field === 'quantity' || field === 'price') {
+                        currentData[index][field] = parseFloat(value) || 0;
+                        currentData[index].total = currentData[index].quantity * currentData[index].price;
+                        document.querySelector(`input[data-index="${index}"][data-field="total"]`).value = currentData[index].total.toFixed(2);
+                    } else {
+                        currentData[index][field] = value;
+                    }
+                    updateTotals();
+                });
+
+                input.addEventListener('click', function() { this.select(); });
+            });
+        }
+
+        // 更新总计
+        function updateTotals() {
+            let subtotal = 0;
+            currentData.forEach(item => { subtotal += item.total; });
+
+            let multiplier = 1;
+            switch(currentType) {
+                case 'winter': multiplier = winterMultiplier; break;
+                case 'new':    multiplier = newRoadMultiplier; break;
+                default:       multiplier = 1;
+            }
+
+            const total = subtotal * multiplier;
+            document.getElementById('totalAmount').textContent = total.toFixed(2);
+
+            if (currentType === 'new') {
+                document.getElementById('totalMultiplier').textContent = multiplier.toFixed(1);
+            }
+        }
+
+        // 添加行
+        function addRow() {
+            currentData.push({
+                name: "新项目", quantity: 1, unit: "项", price: 0, priceUnit: "元/项", total: 0
+            });
+            initTable();
+        }
+
+        // 删除指定行
+        function deleteRow(index) {
+            if (currentData.length > 1) {
+                currentData.splice(index, 1);
+                initTable();
+            } else {
+                alert("至少需要保留一个项目");
+            }
+        }
+
+        // 删除最后一行
+        function deleteLastRow() {
+            if (currentData.length > 1) {
+                currentData.pop();
+                initTable();
+            } else {
+                alert("至少需要保留一个项目");
+            }
+        }
+
+        // 更新显示信息
+        function updateDisplayInfo() {
+            const projectName = document.getElementById('projectName').value;
+            document.getElementById('titleElement').textContent = projectName || "道路挖掘修复费";
+
+            const dateInput = document.getElementById('calcDate').value;
+            const date = new Date(dateInput);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            document.getElementById('displayDate').textContent = `${year}年${month}月${day}日`;
+
+            currentType = document.getElementById('calcType').value;
+            document.getElementById('policyNote').textContent = policyNotes[currentType];
+
+            const multiplierControl = document.getElementById('multiplierControl');
+            if (currentType === 'new') {
+                multiplierControl.classList.add('visible');
+                updateMultiplierDisplay();
+            } else {
+                multiplierControl.classList.remove('visible');
+            }
+
+            updateTotals();
+        }
+
+        // 更新倍数显示
+        function updateMultiplierDisplay() {
+            const defaultMultiplier = newRoadMultipliers["3"]; // 默认三年内2倍
+            newRoadMultiplier = defaultMultiplier;
+            document.getElementById('newRoadMultiplier').value = newRoadMultiplier;
+            document.getElementById('totalMultiplier').textContent = newRoadMultiplier.toFixed(1);
+        }
+
+        // 应用倍数
+        function applyMultipliers() {
+            newRoadMultiplier = parseFloat(document.getElementById('newRoadMultiplier').value) || 2;
+            document.getElementById('totalMultiplier').textContent = newRoadMultiplier.toFixed(1);
+            updateTotals();
+        }
+
+        // 下载Excel（CSV）
+        function downloadExcel() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+
+            csvContent += "道路挖掘修复费计算表\r\n";
+            csvContent += `工程名称：${document.getElementById('projectName').value}\r\n`;
+            csvContent += `计算日期：${document.getElementById('calcDate').value}\r\n`;
+            csvContent += `计算类型：${document.getElementById('calcType').options[document.getElementById('calcType').selectedIndex].text}\r\n\r\n`;
+
+            csvContent += "项目名称,数量,单位,单价,价格单位,金额(元)\r\n";
+
+            currentData.forEach(item => {
+                csvContent += `${item.name},${item.quantity},${item.unit},${item.price},${item.priceUnit},${item.total.toFixed(2)}\r\n`;
+            });
+
+            let subtotal = currentData.reduce((sum, item) => sum + item.total, 0);
+            let multiplier = 1;
+            switch(currentType) {
+                case 'winter': multiplier = winterMultiplier; break;
+                case 'new':    multiplier = newRoadMultiplier; break;
+                default:       multiplier = 1;
+            }
+            const total = subtotal * multiplier;
+
+            csvContent += `\r\n小计,${subtotal.toFixed(2)}\r\n`;
+            csvContent += `计算倍数,${multiplier}\r\n`;
+            csvContent += `总计,${total.toFixed(2)}\r\n\r\n`;
+
+            csvContent += `政策说明：${policyNotes[currentType]}\r\n\r\n`;
+            csvContent += "唐山市路北区市政设施服务所\r\n";
+            csvContent += document.getElementById('displayDate').textContent;
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `道路挖掘修复费计算_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 下载PDF（使用打印功能）
+        function downloadPDF() {
+            window.print();
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTable();
+            // 默认计算日期为当天（可手动修改）
+            const today = new Date();
+            document.getElementById('calcDate').value =
+                today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
+            document.getElementById('projectName').addEventListener('input', updateDisplayInfo);
+            document.getElementById('calcType').addEventListener('change', updateDisplayInfo);
+            document.getElementById('calcDate').addEventListener('change', updateDisplayInfo);
+            updateDisplayInfo();
+            document.getElementById('newRoadMultiplier').addEventListener('change', function() {
+                newRoadMultiplier = parseFloat(this.value) || 2;
+                document.getElementById('totalMultiplier').textContent = newRoadMultiplier.toFixed(1);
+                updateTotals();
+            });
+        });
+    </script>
+</body>
+</html>
